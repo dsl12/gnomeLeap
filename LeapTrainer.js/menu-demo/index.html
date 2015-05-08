@@ -1,0 +1,71 @@
+<!doctype html>
+
+<html>
+	<head>
+		<title>LeapTrainer Menu Demo</title>
+
+    	<style>
+    	
+    		body { margin: 0px; overflow: hidden; font-family: calibri; background: #E9F7FC; }
+
+    		#button { display: block; width: 200px; height: 100px; color: #FFF; background: #88CFEB; font-size: 40px; line-height: 100px; text-align: center; position: absolute; top: 300px; left: 850px; cursor: pointer; box-shadow: -5px 5px 0px rgba(32, 142, 185, 0.7); }
+    	
+    		#button:hover { background: #5FBEE2; }
+    	
+    		#menu { width: 400px; height: 1020px; position: absolute; right: -400px; background: #88CFEB; overflow-y: scroll; }
+    	
+    		#list			{ width: 90%; float: left; margin-left: 5%; background: #FFF; padding-left: 0px; list-style-type: none; }
+			#list li		{ height: 50px; line-height: 50px; border-top: 1px solid #F5F5F5; padding-left: 10px; font-size: 16px; cursor: pointer; }
+    		#list li:hover,
+    		#list li.selected	{ background: #D2EDF7; }
+
+    	</style>
+	</head>
+
+	<body>
+
+		<a id="button">OPEN</a>
+
+		<div id="menu">
+			<ul id="list">
+				<li class="selected">Home</li>
+				<li>Catalogue</li>
+				<li>About us</li>
+				<li>Careers</li>
+				<li>Contact</li>			
+			</ul>
+		</div>
+
+		<script src="../trainer-ui/js/jquery.min.js"></script>
+
+		<script src="../lib/leap.js"></script>
+		<script src="../leaptrainer.min.js"></script>
+
+		<script>
+
+			$(document).ready(function() {
+
+				var menu = $('#menu');
+				var button = $('#button');
+
+				function open (evt)  { menu.animate({right: 0}); button.html('CLOSE'); }
+				
+				function close (evt) { menu.animate({right: -400}); button.html('OPEN'); }	
+
+				button.click(function ()  { if (menu.css('right') == '0px') { close(); } else { open(); }  });
+
+				var trainer = new LeapTrainer.Controller(); 
+
+				trainer.fromJSON('{"name":"LEFT","pose":false,"data":[[{"x":0.4291992372742246,"y":0.05704216266439169,"z":0.051809315272992124,"stroke":1},{"x":0.40142676114728915,"y":0.03927349018238796,"z":0.03889965476011109,"stroke":1},{"x":0.3563059803389327,"y":0.04782990129355055,"z":0.052438301574539214,"stroke":1},{"x":0.291176193309862,"y":0.04832431846061272,"z":0.027647503969735365,"stroke":1},{"x":0.23807884275861624,"y":0.04922626968313715,"z":-0.018391798933202586,"stroke":1},{"x":0.19932267709266716,"y":0.047699028232209284,"z":-0.04452197429386877,"stroke":1},{"x":0.1858377714571019,"y":-0.023983962749203447,"z":-0.03179407037327592,"stroke":1},{"x":0.13652428058232158,"y":0.016146823124631032,"z":0.03245260686063142,"stroke":1},{"x":0.0930117901967602,"y":-0.032305382363496185,"z":-0.020562183876258702,"stroke":1},{"x":0.0429499579163094,"y":-0.08547836662155102,"z":-0.08830345646321895,"stroke":1},{"x":0.03137324951067533,"y":-0.0012072694060561162,"z":0.0405743817625929,"stroke":1},{"x":-0.1132378992741937,"y":0.038012116954715375,"z":-0.11846842353819173,"stroke":1},{"x":-0.018621302259253736,"y":-0.09409943054733594,"z":-0.07200145894379663,"stroke":1},{"x":-0.09949157367611378,"y":0.042975504575772316,"z":-0.018864705449953126,"stroke":1},{"x":-0.10470401073263585,"y":-0.05311474675167305,"z":-0.07588784410894167,"stroke":1},{"x":-0.09797812037966391,"y":0.006448672129940464,"z":0.04389635332884334,"stroke":1},{"x":-0.11327085421349276,"y":-0.0018097252416549997,"z":0.06937640577814755,"stroke":1},{"x":-0.24803954543992596,"y":0.025220914820127893,"z":-0.06064025519791243,"stroke":1},{"x":-0.16797504714446193,"y":-0.07810596301757264,"z":0.014431282050738153,"stroke":1},{"x":-0.32030004534339007,"y":0.0617639858174788,"z":-0.025527090835495703,"stroke":1},{"x":-0.2065158930885836,"y":-0.12610406331236404,"z":0.04820727496061508,"stroke":1},{"x":-0.344271687307273,"y":-0.031371280004037896,"z":0.03358406298834263,"stroke":1},{"x":-0.5708007627257754,"y":0.04761700207598982,"z":0.12164611870682673,"stroke":1}]]}');
+
+				trainer.fromJSON('{"name":"CIRCLE","pose":false,"data":[[{"x":0.1430129858322441,"y":-0.10801660444588426,"z":0.4927373706097584,"stroke":1},{"x":-0.053241580468969374,"y":0.027393878481428102,"z":0.022122106987613743,"stroke":1},{"x":-0.1888149765018034,"y":0.12176186704280509,"z":-0.30680024028847597,"stroke":1},{"x":0.01631145780863469,"y":-0.01430688128626513,"z":0.1598249001723352,"stroke":1},{"x":0.10543481444618219,"y":-0.07142999253701257,"z":0.3440204246502041,"stroke":1},{"x":-0.07743772596239093,"y":0.056553100338529116,"z":-0.13400524614306136,"stroke":1},{"x":-0.08887456989226217,"y":0.06995966199914386,"z":-0.18581132535297296,"stroke":1},{"x":0.11024355446565981,"y":-0.057355098631957785,"z":0.2858596450410663,"stroke":1},{"x":0.09082157001858576,"y":-0.04535542854510763,"z":0.1618769129606764,"stroke":1},{"x":-0.06451750197944835,"y":0.05328834445055902,"z":-0.33256191924690326,"stroke":1},{"x":0.00706197223356772,"y":-0.03249284686623778,"z":-0.5072626293902416,"stroke":1}]]}');
+
+				trainer.on('LEFT', open);
+				trainer.on('CIRCLE', close);
+
+			});
+
+		</script>
+
+	</body>
+</html>
