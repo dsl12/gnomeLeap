@@ -1,4 +1,4 @@
-from shortMotion_utils import open_window, send_keys_to_window
+from shortMotion_utils import open_window, send_keys_to_window,send_keys_to_current_window
 
 short_moves = {
     "R1" : send_keys_to_current_window('\C\\t'), #Next tab

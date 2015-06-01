@@ -61,12 +61,36 @@ jQuery(document).ready(function ($) {
 	 * First we create the leap controller - since the training UI will respond to event coming directly from the device.
 	 */
 	var controller = new Leap.Controller();
-
+    
 	/*
 	 * Now we create the trainer controller, passing the leap controller as a parameter
 	 */
 	var trainer = new LeapTrainer.Controller({controller: controller});
+    
+    function handleFileSelect(evt) {
+    var files = evt.target.files; // FileList object
 
+    // Loop through the FileList and render image files as thumbnails.
+    for (var i = 0, f; f = files[i]; i++) {
+
+      
+
+      var reader = new FileReader();
+
+      // Closure to capture the file information.
+      reader.onload = (function(theFile) {
+        return function(e) {
+          var s = e.target.result;
+          trainer.fromJSON(s);
+        };
+      })(f);
+
+      // Read in the image file as a data URL.
+      reader.readAsText(f);
+    }
+  }
+
+  document.getElementById('files').addEventListener('change', handleFileSelect, false);
 	/*
 	 * We get the DOM crawling done now during setup, so it's not consuming cycles at runtime.
 	 */
@@ -758,6 +782,7 @@ jQuery(document).ready(function ($) {
 		setGestureScale(gestureName, hitPercentage, green, green);
 
 		setOutputText('<span style="font-weight: bold">' + gestureName + '</span> : ' + hitPercentage + '% MATCH');
+		$("#Hits").html()
 	});	
 
 	/*
@@ -772,7 +797,13 @@ jQuery(document).ready(function ($) {
 		setOutputText();
 		
 		setAllGestureScales(allHits);
+        	$("#version-tag").html("");
 		
+        for (gestureName in allHits) {
+        	$("#version-tag").append(gestureName + " " + Math.min(parseInt(100 * allHits[gestureName]), 100)+ "     ");
+
+        }
+
 		clearGesture();
 	});
 

@@ -22,7 +22,7 @@ import Leap
 from Xlib import X, XK
 from Xlib.display import Display
 from Xlib.ext.xtest import fake_input
-from gi.repository import Gdk
+from gi.repository import Gdk,Gio
 import sys, time, math
 from Leap import CircleGesture, SwipeGesture
 
@@ -33,8 +33,8 @@ DECREASE_ZOOM_COMBO = (XK.XK_Control_L, XK.XK_minus)
 
 class EventManager(object):
 
-    POINTER_MOVE_THRESHOLD = 150.0 # px
-    POINTER_MIN_MOVE = 2.0 # px
+    POINTER_MOVE_THRESHOLD = 50.0 # px
+    POINTER_MIN_MOVE = 1.0 # px
     POINTER_STOP_TIMEOUT = .5 # seconds
     ZOOM_THRESHOLD = 20 # mm
     ZOOM_FUNCTION_DURATION = .2 # seconds
@@ -47,6 +47,7 @@ class EventManager(object):
         self._last_pointer_move = 0
         self._last_zoom = 0
         self._last_zoom_distance = -1
+        self._activities_key = self._display.keysym_to_keycode(XK.XK_Super_L)
 
     def _set_pointer(self, x, y):
         fake_input(self._display, X.MotionNotify, x=x, y=y)
@@ -77,6 +78,18 @@ class EventManager(object):
         fake_input(self._display, X.ButtonPress, 1)
         fake_input(self._display, X.ButtonRelease, 1)
         self._display.sync()
+
+    def grab(self,Grab=False):
+        if Grab:
+           fake_input(self._display, X.KeyPress, self._activities_key)
+           fake_input(self._display, X.ButtonPress, 1)
+           self._display.sync()
+        else:
+           fake_input(self._display, X.KeyRelease, self._activities_key)
+           fake_input(self._display, X.ButtonRelease, 1)
+           self._display.sync()
+
+        
 
     def toggle_activities(self):
         self._run_function(self._toggle_activities_real,
@@ -141,7 +154,7 @@ class EventManager(object):
 
 class ControllerListener(Leap.Listener):
 
-    MIN_CIRCLE_RADIUS = 100.0
+    MIN_CIRCLE_RADIUS = 5
     MIN_SWIPE_LENGTH = 150.0
     ENABLED_GESTURES = [Leap.Gesture.TYPE_CIRCLE,
                         Leap.Gesture.TYPE_SCREEN_TAP,
@@ -154,9 +167,12 @@ class ControllerListener(Leap.Listener):
         self._event_manager = EventManager()
         self._screen_width = screen.get_width()
         self._screen_height = screen.get_height()
+        self.FloodProtected = 0
+        self.drag = False
+        self.grab = False
 
     def on_connect(self, controller):
-        if controller.config.set('Gesture.Circle.MinArc', 2 * Leap.PI) and \
+        if controller.config.set('Gesture.Circle.MinArc', 6 * Leap.PI) and \
            controller.config.set('Gesture.Circle.MinRadius', self.MIN_CIRCLE_RADIUS) and \
            controller.config.set('Gesture.Swipe.MinLength', self.MIN_SWIPE_LENGTH):
             controller.config.save()
@@ -170,26 +186,67 @@ class ControllerListener(Leap.Listener):
         distance = point1.distance_to(point2)
         self._event_manager.zoom(distance)
 
+
+
+    def move(self, frame):
+            #Moving the mouse
+            interaction_box = frame.interaction_box
+            if frame.pointables:
+                pointable = frame.pointables.frontmost
+                position = interaction_box.normalize_point(pointable.stabilized_tip_position)
+                pos_x = position.x * self._screen_width
+                pos_y = self._screen_height - position.y * self._screen_height
+                # actually move pointer
+                self._event_manager.move_pointer(pos_x, pos_y)
+
     def handle_one_hand(self, frame):
-        if len(frame.fingers) < 3:
+
+        LeftHand = frame.hands.leftmost
+        if not LeftHand.is_valid:
+            return
+
+
+        # 0 Fingers
+        if len(frame.fingers.extended()) == 0:
+            return 
+
+        # 1 Finger
+        if len(frame.fingers.extended()) == 1:
+
+            #Gestures
             for gesture in frame.gestures():
+                # Click
                 if gesture.type == Leap.Gesture.TYPE_KEY_TAP:
                     self._event_manager.click()
                     return
 
-                if gesture.type == Leap.Gesture.TYPE_CIRCLE:
-                    self._event_manager.toggle_activities()
 
-            # Move the pointer
-            interaction_box = frame.interaction_box
-            if frame.pointables:
-                pointable = frame.pointables.frontmost
-                position = interaction_box.normalize_point(pointable.tip_position)
-                pos_x = position.x * self._screen_width
-                pos_y = self._screen_height - position.y * self._screen_height
-                self._event_manager.move_pointer(pos_x, pos_y)
 
-        if len(frame.fingers) > 4:
+        # 2 Fingers
+        if len(frame.fingers.extended()) == 2:
+            self.move(frame)
+            # Gestures
+            for gesture in frame.gestures():
+                #Click
+                if gesture.type == Leap.Gesture.TYPE_KEY_TAP:
+                    self._event_manager.click()
+                    return
+
+        #Grabbing?
+        if LeftHand.pinch_strength >= 0.8 and len(frame.fingers.extended()) in (3,4,5):
+            #print("Fingers: %s \ngrab on at: %s" % (len(frame.fingers.extended()), LeftHand.pinch_strength))
+            self.grab = True
+            self.move(frame)
+            self._event_manager.grab(self.grab)
+            return
+        elif LeftHand.pinch_strength <= 0.3 and len(frame.fingers.extended()) in (3,4,5):
+            #print("Fingers: %s  \ngrab off at: %s" % (len(frame.fingers.extended()), LeftHand.pinch_strength))
+            self.grab = False
+            self.move(frame)
+            self._event_manager.grab(self.grab)
+ 
+    # 4 finger swipe = switch desktop
+        if len(frame.fingers.extended()) == 4:
             swipe_gestures = []
             for gesture in frame.gestures():
                 if gesture.type != Leap.Gesture.TYPE_SWIPE:
@@ -212,17 +269,43 @@ class ControllerListener(Leap.Listener):
                     if angle > Leap.PI - Leap.PI / 4:
                         self._event_manager.move_previous_desktop()
 
+    # 5 finger swipe = overlay
+        if len(frame.fingers.extended()) == 5:
+            self.move(frame)
+            swipe_gestures = []
+            for gesture in frame.gestures():
+                if gesture.type == Leap.Gesture.TYPE_CIRCLE:
+                    circle = CircleGesture(gesture)
+                    if circle.progress <= 2: return
+                    if (circle.pointable.direction.angle_to(circle.normal) <= Leap.PI/2):
+                        clockwise = True
+                    else:
+                        clockwise = False
+                    #self._event_manager.toggle_activities()
+                    if clockwise:
+                        if frame.id > self.FloodProtected:
+                            app = Gio.DesktopAppInfo.new("gnome-terminal.desktop")
+                            app.launch((), None)
+                            self.FloodProtected = frame.id + 100
+                    else:
+                        self._event_manager.toggle_activities()
+     
+
     def on_frame(self, controller):
         frame = controller.frame()
+        
 
-        if frame.hands.empty:
+        if frame.hands.is_empty:
             return
 
-        if len(frame.hands) > 1:
+        if len(frame.hands) == 1:
+            self.handle_one_hand(frame)
+            return
+
+        if len(frame.hands) == 2:
             self.handle_two_hands(frame)
             return
 
-        self.handle_one_hand(frame)
 
 def main():
     listener = ControllerListener()

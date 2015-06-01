@@ -317,13 +317,28 @@ LeapTrainer.Controller = Class.extend({
 					this.recordingPose 		= false;
 				};
 			};
-			
+
+
+
+            if(frame.data.pointables.length == 1) {
+
+			// console.log(frame.data.pointables[0].stabilizedTipPosition);
+			// console.log(frame.interactionBox.normalizePoint(frame.data.pointables[0].stabilizedTipPosition));
+			// console.log(frame);
+            }
+		
+
+
+
+		// this.fire("mouse",)
 		}; // The frame listener is bound to the context of the LeapTrainer object
 
 	 	/**
 	 	 * This is the frame listening function, which will be called by the Leap.Controller on every frame.
 	 	 */
 		this.controller.on('frame',	this.onFrame.bind(this)); 
+
+
 		
 		/*
 		 * If pauseOnWindowBlur is true, then we bind the pause function to the controller blur event and the resume 
@@ -840,7 +855,6 @@ LeapTrainer.Controller = Class.extend({
 				foundMatch = true;
 			}
 		}
-
 		return (!foundMatch) ? 0.0 : (Math.min(parseInt(100 * Math.max(nearest - 4.0) / -4.0, 0.0), 100)/100.0);
 	},
 
@@ -991,8 +1005,6 @@ LeapTrainer.Controller = Class.extend({
 	 */
 	destroy: function() { this.controller.removeListener('frame', this.onFrame); }
 });
-
-
 /*!
  * --------------------------------------------------------------------------------------------------------
  * 
@@ -1016,8 +1028,8 @@ LeapTrainer.Controller = Class.extend({
  * --------------------------------------------------------------------------------------------------------
  */
 
-/**
- * A basic holding class for a 3D point. Note the final parameter, stroke, intended to indicate with which 
+/*
+* * A basic holding class for a 3D point. Note the final parameter, stroke, intended to indicate with which 
  * stroke in a multi-stroke gesture a point is associated - even if multi-stroke gestures are not yet supported 
  * by the framework.
  * 
@@ -1077,12 +1089,13 @@ LeapTrainer.TemplateMatcher = Class.extend({
 	match: function (gesture, trainingGesture) {
 
 		var l 			= gesture.length, 
-			step 		= Math.floor(Math.pow(l, 1 - this.e)), 
+			step 		= Math.floor(Math.pow(l, 1 - this.e)),
 			min 		= +Infinity,
 			minf 		= Math.min;
 		
+		
 		for (var i = 0; i < l; i += step) {
-
+            
 			min = minf(min, minf(this.gestureDistance(gesture, trainingGesture, i), this.gestureDistance(trainingGesture, gesture, i)));
 		}
 
@@ -1344,3 +1357,6 @@ LeapTrainer.TemplateMatcher = Class.extend({
 		return Math.sqrt(dx * dx + dy * dy + dz * dz);
 	}	
 });
+
+module.exports=LeapTrainer.Controller
+module.exports.tm=LeapTrainer.TemplateMatcher

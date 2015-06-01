@@ -47,7 +47,7 @@ MouseListener::MouseListener()
     : _debug(cerr), _osd(cout) {
 
     // Tracking
-    conf.track_finger        = Finger::TYPE_MIDDLE;
+    conf.track_finger        = Finger::TYPE_INDEX;
     conf.distance_cutoff     = 0.1;
     conf.base_scale          = 30.0;
     conf.scale_factor        = 35.0;
