@@ -320,12 +320,12 @@ LeapTrainer.Controller = Class.extend({
 
 
 
-            if(frame.data.pointables.length == 1) {
-            this.fire("mouse",frame.interactionBox.normalizePoint(frame.data.pointables[0].stabilizedTipPosition,clamp=true));
-			// console.log(frame.data.pointables[0].stabilizedTipPosition);
-			// console.log(frame.interactionBox.normalizePoint(frame.data.pointables[0].stabilizedTipPosition));
-			// console.log(frame.interactionBox);
-            }
+   //          if(frame.data.pointables.length == 1) {
+   //          this.fire("mouse",frame.interactionBox.normalizePoint(frame.data.pointables[0].stabilizedTipPosition,clamp=true));
+			// // console.log(frame.data.pointables[0].stabilizedTipPosition);
+			// // console.log(frame.interactionBox.normalizePoint(frame.data.pointables[0].stabilizedTipPosition));
+			// // console.log(frame.interactionBox);
+   //          }
 		
 
 
