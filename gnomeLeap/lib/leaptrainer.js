@@ -159,7 +159,7 @@ LeapTrainer.Controller = Class.extend({
 	paused					: false,// This variable is set by the pause() method and unset by the resume() method - when true it disables frame monitoring temporarily.
 
 	renderableGesture		: null, // Implementations that record a gestures for graphical rendering should store the data for the last detected gesture in this array.
-	
+	nameMap                 : ['thumb', 'index', 'middle', 'ring', 'pinky'],
 	/**
 	 * The controller initialization function - this is called just after a new instance of the controller is created to parse the options array, 
 	 * connect to the Leap Motion device (unless an existing Leap.Controller object was passed as a parameter), and register a frame listener with 
@@ -220,8 +220,9 @@ LeapTrainer.Controller = Class.extend({
 		 * These two utility functions are used to push a vector (a 3-variable array of numbers) into the gesture array - which is the 
 		 * array used to store activity in a gesture during recording. NaNs are replaced with 0.0, though they shouldn't occur!
 		 */
-	 	recordValue		 = function (val) 	{ gesture.push(isNaN(val) ? 0.0 : val); },
-	 	recordVector	 = function (v) 	{ recordValue(v[0]); recordValue(v[1]); recordValue(v[2]); };
+	 	recordValue		 = function (val) 	{ 
+	 		gesture.push (val);
+	 		 }
 
 	 	/**
 	 	 * 
@@ -248,7 +249,7 @@ LeapTrainer.Controller = Class.extend({
 			 * 
 			 */
 			if (this.recordableFrame(frame, this.minRecordingVelocity, this.maxRecordingVelocity)) {
-	
+	            
 				/*
 				 * If this is the first frame in a gesture, we clean up some running values and fire the 'started-recording' event.
 				 */
@@ -273,7 +274,7 @@ LeapTrainer.Controller = Class.extend({
 				 * The recordFrame function may be overridden, but in any case it's passed the current frame, the previous frame, and 
 				 * utility functions for adding vectors and individual values to the recorded gesture activity.
 				 */
-				this.recordFrame(frame, this.controller.frame(1), recordVector, recordValue);
+				this.recordFrame(frame, this.controller.frame(1),  recordValue);
 
 				/*
 				 * Since renderable frame data is not necessarily the same as frame data used for recognition, a renderable frame will be 
@@ -307,8 +308,9 @@ LeapTrainer.Controller = Class.extend({
 					 * the time of the last hit.
 					 */
 					var gestureName = this.trainingGesture;
+					if (gestureName) { 
 
-					if (gestureName) { this.saveTrainingGesture(gestureName, gesture, this.recordingPose);
+						this.saveTrainingGesture(gestureName, gesture, this.recordingPose);
 
 					} else { this.recognize(gesture, frameCount); }
 
@@ -322,9 +324,6 @@ LeapTrainer.Controller = Class.extend({
 
    //          if(frame.data.pointables.length == 1) {
    //          this.fire("mouse",frame.interactionBox.normalizePoint(frame.data.pointables[0].stabilizedTipPosition,clamp=true));
-			// // console.log(frame.data.pointables[0].stabilizedTipPosition);
-			// // console.log(frame.interactionBox.normalizePoint(frame.data.pointables[0].stabilizedTipPosition));
-			// // console.log(frame.interactionBox);
    //          }
 		
 
@@ -430,29 +429,30 @@ LeapTrainer.Controller = Class.extend({
 	 * @param recordVector
 	 * @param recordValue
 	 */
-	recordFrame: function(frame, lastFrame, recordVector, recordValue) {
+	recordFrame: function(frame, lastFrame,  recordValue) {
 		
 		var hands		= frame.hands;
 		var handCount 	= hands.length;
 
 		var hand, finger, fingers, fingerCount;
-
+			var currentFrame = {}
+			currentFrame.hands = []
 		for (var i = 0, l = handCount; i < l; i++) {
-			
 			hand = hands[i];
-
-			recordVector(hand.stabilizedPalmPosition);
-
+  			currentFrame.hands[i] = {}
+		    currentFrame.hands[i].sPP= hand.stabilizedPalmPosition;
+            currentFrame.hands[i].fingers = [];
 			fingers 	= hand.fingers;
 			fingerCount = fingers.length;
-			
 			for (var j = 0, k = fingerCount; j < k; j++) {
-				
+                currentFrame.hands[i].fingers[j] = {}
 				finger = fingers[j];
+                currentFrame.hands[i].fingers[j].type = finger.type;
+                currentFrame.hands[i].fingers[j].sPP = finger.stabilizedTipPosition;
+              };
 
-				recordVector(finger.stabilizedTipPosition);	
-			};
 		};
+		recordValue(currentFrame);
 	},
 	
 	/**
@@ -607,9 +607,8 @@ LeapTrainer.Controller = Class.extend({
 	 * @param trainingGestures
 	 */
 	trainAlgorithm: function (gestureName, trainingGestures) {
-		
 		for (var i = 0, l = trainingGestures.length; i < l; i++) { 
-
+             
 			trainingGestures[i] = this.templateMatcher.process(trainingGestures[i]);
 		}		
 	},
@@ -625,11 +624,12 @@ LeapTrainer.Controller = Class.extend({
 	 */
 	saveTrainingGesture: function(gestureName, gesture, isPose) {
 		
+
 		/*
 		 * We retrieve all gestures recorded for this gesture name so far
 		 */
 		var trainingGestures = this.gestures[gestureName];
-		
+
 		/*
 		 * Save the newly recorded gesture data
 		 */
@@ -639,14 +639,14 @@ LeapTrainer.Controller = Class.extend({
 		 * And check if we have enough saved gestures to complete training
 		 */
 		if (trainingGestures.length == this.trainingGestures) { 
+            
 
-			/*
+            /*
 			 * We expand the training data by generating a gaussian normalized distribution around the input.  This increases the 
 			 * number of training gestures used during recognition, without demanding more training samples from the user.
 			 */
 			this.gestures[gestureName] = this.distribute(trainingGestures);
-
-			/*
+				/*
 			 * Whether or not the gesture was recorded as a pose is stored
 			 */
 			this.poses[gestureName] = isPose;
@@ -1028,23 +1028,18 @@ LeapTrainer.Controller = Class.extend({
  */
 
 /*
-* * A basic holding class for a 3D point. Note the final parameter, stroke, intended to indicate with which 
- * stroke in a multi-stroke gesture a point is associated - even if multi-stroke gestures are not yet supported 
- * by the framework.
+* * A basic holding class for a 3D point. 
  * 
  * @param x
  * @param y
  * @param z
- * @param stroke
  * @returns {LeapTrainer.Point}
  */
-LeapTrainer.Point = function (x, y, z, stroke) {
+LeapTrainer.Point = function (x, y, z) {
 
 	this.x = x;
 	this.y = y;
 	this.z = z;
-
-	this.stroke = stroke; // stroke ID to which this point belongs (1,2,...)
 };
 
 /**
@@ -1067,13 +1062,20 @@ LeapTrainer.TemplateMatcher = Class.extend({
 	
 		var points = [];
 		
-		var stroke = 1;
 
-		for (var i = 0, l = gesture.length; i < l; i += 3) {
+		for(var frame=0; frame < gesture.length; frame++) {
+			for (var hand = 0; hand < gesture[frame].hands.length; hand++) {
+				 var vector = gesture[frame].hands[hand].sPP;
+                 var point = new LeapTrainer.Point(vector[0],vector[1],vector[2]);
+				points.push(point);
+				for (var finger=0;finger < 5; finger ++) {
+                     vector = gesture[frame].hands[hand].fingers[finger].sPP
+                     point = new LeapTrainer.Point(vector[0],vector[1],vector[2]);
+				     points.push(point)
 
-			points.push(new LeapTrainer.Point(gesture[i], gesture[i + 1], gesture[i + 2], stroke));
+				}
+			}
 		}
-
 		return this.translateTo(this.scale(this.resample(points, this.pointCount)), this.origin);	
 	},	
 	
@@ -1165,7 +1167,6 @@ LeapTrainer.TemplateMatcher = Class.extend({
 			p	= gesture[i];
 			pp	= gesture[i - 1];
 			
-			if (p.stroke == pp.stroke) {
 
 				d = this.distance(pp, p);
 
@@ -1177,7 +1178,7 @@ LeapTrainer.TemplateMatcher = Class.extend({
 
 					q = new LeapTrainer.Point((ppx + ((interval - dist) / d) * (p.x - ppx)), 
 											  (ppy + ((interval - dist) / d) * (p.y - ppy)),
-											  (ppz + ((interval - dist) / d) * (p.z - ppz)), p.stroke);
+											  (ppz + ((interval - dist) / d) * (p.z - ppz)));
 					
 					resampledGesture.push(q);
 					
@@ -1189,7 +1190,7 @@ LeapTrainer.TemplateMatcher = Class.extend({
 				
 					dist += d;
 				}
-			}
+			
 		}
 
 		/*
@@ -1200,7 +1201,7 @@ LeapTrainer.TemplateMatcher = Class.extend({
 			
 			p = gesture[gesture.length - 1];
 			
-			resampledGesture.push(new LeapTrainer.Point(p.x, p.y, p.z, p.stroke));
+			resampledGesture.push(new LeapTrainer.Point(p.x, p.y, p.z));
 		}
 
 		return resampledGesture;
@@ -1248,7 +1249,7 @@ LeapTrainer.TemplateMatcher = Class.extend({
 			
 			g = gesture[i];
 
-			gesture[i] = new LeapTrainer.Point((g.x - minX)/size, (g.y - minY)/size, (g.z - minZ)/size, g.stroke);
+			gesture[i] = new LeapTrainer.Point((g.x - minX)/size, (g.y - minY)/size, (g.z - minZ)/size);
 		}
 
 		return gesture;
@@ -1272,7 +1273,7 @@ LeapTrainer.TemplateMatcher = Class.extend({
 
 			gesture[i] = new LeapTrainer.Point((g.x + centroid.x - center.x), 
 											   (g.y + centroid.y - center.y), 
-											   (g.z + centroid.z - center.z), g.stroke);
+											   (g.z + centroid.z - center.z));
 		}
 
 		return gesture;
@@ -1334,7 +1335,7 @@ LeapTrainer.TemplateMatcher = Class.extend({
 			g	= gesture[i];
 			gg 	= gesture[i - 1];
 			
-			if (g.stroke == gg.stroke) { d += this.distance(gg, g); }
+			d += this.distance(gg, g); 
 		}
 
 		return d;
